@@ -48,7 +48,7 @@ def dev_mode_window():
 
 if __name__ == "__main__":
     config = load_config()
-    if config.get("mode_dev", False):
+    if config.get("mode_dev", True):
         dev_mode_window()
     else:
-        connect()
+        connect_normal()

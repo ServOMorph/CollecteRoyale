@@ -16,7 +16,7 @@ port = 12345
 buffer = ""
 client_socket = None
 server_online = False
-display_window_connect = True
+display_window_connect = True #équivalent à 2 joueur non connectés
 player_name = ""
 client_connected = False
 
@@ -64,6 +64,9 @@ def listen_for_messages():
                         if nbr_joueurs == 2:
                             print("\nDeux joueurs connectés, lancement du jeu...")
                             display_window_connect = False
+                            pygame.display.quit()
+                            launch_game()
+
                     except ValueError:
                         pass  # Ignore si l'extraction échoue
         except Exception as e:
@@ -95,9 +98,10 @@ def connect_to_server(player_name):
         display_window_connect = False  # Pour éviter une boucle infinie
 
 def fast_connect():
-    global client_socket
+    global client_socket, display_window_connect
     player_name = f"Joueur_{uuid.uuid4().hex[:6]}"
-    connect_to_server(player_name)
+    thread_connexion = threading.Thread(target=connect_to_server, args=(player_name,), daemon=True)
+    thread_connexion.start()   
    
 def connect_normal():
     print("Lancement de connect_normal dans network_manager")
@@ -248,65 +252,61 @@ def connect_normal():
         if client_connected:
             welcome_text = font.render(f"Bienvenue {player_name}", True, WHITE)
             screen.blit(welcome_text, (100,730)) #718
-
         pygame.display.flip()
     
-    print("sortie de la boucle while server_online")        
-    #pygame.display.quit()
-    #print("Fenêtre de connection fermée")
-    #launch_game()
-        
-    def init_game_window():
-        pygame.init()
-        WIDTH, HEIGHT = 1920, 1080
-        screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("Collecte Royale")
-        return screen, WIDTH, HEIGHT
+def init_game_window():
+    pygame.init()
+    WIDTH, HEIGHT = 1920, 1080
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Collecte Royale")
+    return screen, WIDTH, HEIGHT
 
-    def launch_game():
-        screen, WIDTH, HEIGHT = init_game_window()
-        print("def launch_game activée, lancement du jeu")
+def launch_game():
+    screen, WIDTH, HEIGHT = init_game_window()
+    print("def launch_game activée, lancement du jeu")
 
-        # Charger les images de fond
-        background_image_intro = pygame.image.load(r"C:\Users\raph6\Documents\Python\CollecteRoyale\V5\CollecteRoyale\Images\Collecte Royale.png")
-        background_image_intro = pygame.transform.scale(background_image_intro, (WIDTH, HEIGHT))
-        background_image_explain = pygame.image.load(r"C:\Users\raph6\Documents\Python\CollecteRoyale\V5\CollecteRoyale\Images\explication du jeu.png")
-        background_image_explain = pygame.transform.scale(background_image_explain, (WIDTH, HEIGHT))
+    # Charger les images de fond
+    background_image_intro = pygame.image.load(r"C:\Users\raph6\Documents\Python\CollecteRoyale\V7\Images\Collecte Royale.png")
+    background_image_intro = pygame.transform.scale(background_image_intro, (WIDTH, HEIGHT))
+    background_image_explain = pygame.image.load(r"C:\Users\raph6\Documents\Python\CollecteRoyale\V7\Images\explication du jeu.png")
+    background_image_explain = pygame.transform.scale(background_image_explain, (WIDTH, HEIGHT))
 
-        # Barre de progression
-        BAR_WIDTH, BAR_HEIGHT = 600, 10
-        bar_x = (WIDTH - BAR_WIDTH) // 2
-        bar_y = HEIGHT - BAR_HEIGHT - 50
-        bar_color = (173, 227, 16)
-        border_color = (255, 255, 255)
-        border_thickness = 5
-        total_duration = 2
-        fps = 60
-        clock = pygame.time.Clock()
+    # Barre de progression
+    BAR_WIDTH, BAR_HEIGHT = 600, 10
+    bar_x = (WIDTH - BAR_WIDTH) // 2
+    bar_y = HEIGHT - BAR_HEIGHT - 50
+    bar_color = (173, 227, 16)
+    border_color = (255, 255, 255)
+    border_thickness = 5
+    total_duration = 2
+    fps = 60
+    clock = pygame.time.Clock()
 
-        # Progression
-        start_time = time.time()
-        while time.time() - start_time < total_duration:
-            screen.blit(background_image_intro, (0, 0))
-            progress = (time.time() - start_time) / total_duration
-            progress_width = int(BAR_WIDTH * progress)
-            pygame.draw.rect(screen, border_color, (bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT), border_thickness)
-            pygame.draw.rect(screen, bar_color, (bar_x, bar_y, progress_width, BAR_HEIGHT))
-            pygame.display.flip()
-            clock.tick(fps)
-
-        # Image finale après la progression
-        screen.blit(background_image_explain, (0, 0))
+    # Progression
+    start_time = time.time()
+    while time.time() - start_time < total_duration:
+        screen.blit(background_image_intro, (0, 0))
+        progress = (time.time() - start_time) / total_duration
+        progress_width = int(BAR_WIDTH * progress)
+        pygame.draw.rect(screen, border_color, (bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT), border_thickness)
+        pygame.draw.rect(screen, bar_color, (bar_x, bar_y, progress_width, BAR_HEIGHT))
         pygame.display.flip()
-        time.sleep(5)
-        print("Lancement de la suite")
-        pygame.display.quit()
-        subprocess.Popen(["python", "setup_game.py"])
-    """    
+        clock.tick(fps)
 
-    if server_online:
-        # Lancer un thread pour écouter les messages du serveur
-        thread_reception = threading.Thread(target=listen_for_messages, daemon=True)
-        thread_reception.start()
+    # Image finale après la progression
+    screen.blit(background_image_explain, (0, 0))
+    pygame.display.flip()
+    time.sleep(5)
+    print("Lancement de la suite")
+    pygame.display.quit()
+    subprocess.Popen(["python", "setup_game.py"])
 
-    """  
+
+"""    
+
+if server_online:
+    # Lancer un thread pour écouter les messages du serveur
+    thread_reception = threading.Thread(target=listen_for_messages, daemon=True)
+    thread_reception.start()
+
+"""  
