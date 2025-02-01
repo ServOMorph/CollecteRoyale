@@ -61,9 +61,9 @@ def listen_for_messages():
                     try:
                         nbr_joueurs = int(message.split()[-1])  # Extraction du nombre de joueurs
                         print(f"nbr de joueur = {nbr_joueurs}")
-                        display_window_connect = False
                         if nbr_joueurs == 2:
                             print("\nDeux joueurs connectés, lancement du jeu...")
+                            display_window_connect = False
                     except ValueError:
                         pass  # Ignore si l'extraction échoue
         except Exception as e:
@@ -71,24 +71,28 @@ def listen_for_messages():
             break
 
 def connect_to_server(player_name):
-    global client_socket, client_connected
-    while not client_connected:
-        try:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((host, port))
-            print(f"Connecté au serveur avec le nom : {player_name}")
-            # Envoi automatique du nom du joueur
-            message = f"Nom du joueur = {player_name}\n"
-            client_socket.send(message.encode())
-            client_connected = True
-        except (ConnectionRefusedError, OSError):
-            print("Le serveur n'est pas en ligne. Nouvelle tentative dans 3 secondes...")
-            time.sleep(3)  # Attente avant nouvelle tentative
-    # Lancer un thread pour écouter les messages du serveur
-    thread_reception = threading.Thread(target=listen_for_messages, daemon=True)
-    thread_reception.start()
-    while True:
-        pass
+    global client_socket, client_connected, display_window_connect
+    try:
+        while not client_connected:
+            try:
+                client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client_socket.connect((host, port))
+                print(f"Connecté au serveur avec le nom : {player_name}")
+
+                message = f"Nom du joueur = {player_name}\n"
+                client_socket.send(message.encode())
+                client_connected = True
+            except (ConnectionRefusedError, OSError):
+                print("Le serveur n'est pas en ligne. Nouvelle tentative dans 3 secondes...")
+                time.sleep(3)  
+
+        # Vérifie si display_window_connect est toujours actif
+        print(f"Avant lancement du thread d'écoute : display_window_connect = {display_window_connect}")
+        thread_reception = threading.Thread(target=listen_for_messages, daemon=True)
+        thread_reception.start()
+    except Exception as e:
+        print(f"Erreur dans connect_to_server : {e}")
+        display_window_connect = False  # Pour éviter une boucle infinie
 
 def fast_connect():
     global client_socket
@@ -97,7 +101,7 @@ def fast_connect():
    
 def connect_normal():
     print("Lancement de connect_normal dans network_manager")
-    global client_socket, server_online, player_name, client_connected
+    global client_socket, server_online, player_name, client_connected, display_window_connect
     
     # Lancer l’attente serveur en arrière-plan
     thread_serveur = threading.Thread(target=attendre_serveur_en_thread, daemon=True)
@@ -112,8 +116,6 @@ def connect_normal():
     GRAY = (100, 100, 100)
     RED = (220, 20, 60)
     VERT = (173, 227, 16) 
-
-    global display_window_connect, server_online
 
     input_active = False
     client_socket = None
@@ -175,6 +177,7 @@ def connect_normal():
                     sys.exit()
 
     # Serveur en ligne
+    print(f"Avant la boucle while : display_window_connect = {display_window_connect}")
     while display_window_connect:
         background_image = pygame.image.load(r"C:\Users\raph6\Documents\Python\CollecteRoyale\V5\CollecteRoyale\Images\interface.png")
         background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
@@ -223,15 +226,9 @@ def connect_normal():
                             error_message = "Entrer le nom du joueur"
                         else:
                             print("affichage msg de bienvenue")
-                            welcome_text = font.render(f"Bienvenue {player_name}", True, WHITE)
-                            screen.blit(welcome_text, (100,730)) #718
-                            pygame.display.flip()
-                            client_socket, success = connect_to_server(player_name)
-                            if success:
-                                error_message = None
-                                if not any(thread.name == "thread_reception" for thread in threading.enumerate()):
-                                    thread_reception = threading.Thread(target=listen_for_messages, daemon=True, name="thread_reception")
-                                    thread_reception.start()
+                            thread_connexion = threading.Thread(target=connect_to_server, args=(player_name,), daemon=True)
+                            thread_connexion.start()   
+                            print(f"valeur de display_window_connect = {display_window_connect}")                         
 
                 # Vérifie si la zone "Quitter" est cliquée
                 if quit_zone_x <= event.pos[0] <= quit_zone_x + quit_zone_w and \
@@ -247,9 +244,14 @@ def connect_normal():
                     player_name = player_name[:-1]  # Supprimer le dernier caractère
                 else:
                     player_name += event.unicode  # Ajouter le caractère tapé
+                    
+        if client_connected:
+            welcome_text = font.render(f"Bienvenue {player_name}", True, WHITE)
+            screen.blit(welcome_text, (100,730)) #718
+
         pygame.display.flip()
     
-    print("sortie de la boulce while server_online")        
+    print("sortie de la boucle while server_online")        
     #pygame.display.quit()
     #print("Fenêtre de connection fermée")
     #launch_game()
