@@ -1,0 +1,3 @@
+voir quand on clique sur connect dans jeu normal (affichage message de bienvenue)
+faire setup_game avec une fenêtre de config de joueur
+gérer les plantages serveur et client
